@@ -60,6 +60,7 @@ public class xposedInit implements IXposedHookLoadPackage {
                     Object result = param.getResult();
                     if (result == null)
                         return;
+                    //Log.e(TAG, "afterHookedMethod: test throw", new RuntimeException());
                     Field f = TelegramUser.getDeclaredField("phone");
                     f.setAccessible(true);
                     f.set(result, "12345678901");
