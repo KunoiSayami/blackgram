@@ -2,49 +2,59 @@ plugins {
     id 'com.android.application'
 }
 
-apply from: 'properties.gradle'
+// Signing credentials are kept out of version control. Copy properties.gradle.example
+// to properties.gradle and fill it in to produce a signed release build.
+def hasSigningProperties = file('properties.gradle').exists()
+if (hasSigningProperties) {
+    apply from: 'properties.gradle'
+}
 
 android {
-    compileSdk 33
+    namespace = 'com.github.kunoisayami.telegramhiddenphone'
+    compileSdk = 36
 
-    signingConfigs {
-        config {
-            keyAlias 'key0'
-            keyPassword KeyPassword
-            storeFile file(keyStoreFile)
-            storePassword StorePassword
+    if (hasSigningProperties) {
+        signingConfigs {
+            config {
+                keyAlias = 'key0'
+                keyPassword = KeyPassword
+                storeFile = file(keyStoreFile)
+                storePassword = StorePassword
+            }
         }
     }
 
-
     defaultConfig {
-        applicationId "com.github.kunoisayami.telegramhiddenphone"
-        minSdk 28
-        targetSdk 33
-        versionCode 2
-        versionName "1.0"
+        applicationId = "com.github.kunoisayami.telegramhiddenphone"
+        minSdk = 28
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasSigningProperties) {
+                signingConfig = signingConfigs.config
+            }
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
 dependencies {
 
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
     compileOnly 'de.robv.android.xposed:api:82'
 }

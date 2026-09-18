@@ -1,0 +1,7 @@
+// Copy this file to properties.gradle and fill in your signing credentials.
+// properties.gradle is gitignored and must not be committed.
+ext {
+    keyStoreFile = '/absolute/path/to/your.keystore'
+    StorePassword = 'your-store-password'
+    KeyPassword = 'your-key-password'
+}
