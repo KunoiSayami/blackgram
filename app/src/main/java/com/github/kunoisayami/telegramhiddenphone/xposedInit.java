@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,9 +21,10 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * Hides the current account's own phone number in Telegram by masking the
  * {@code phone} field on the object returned from {@code UserConfig.getCurrentUser()}.
  *
- * <p>The {@code TLRPC$User} type and its {@code phone} field are obfuscated in recent
- * Telegram releases; they are recovered at runtime by {@link TelegramSymbols}
- * (reflection first, DexKit only as a fallback) rather than by hardcoded names.
+ * <p>Which of {@code UserConfig}, {@code TLRPC$User} and its {@code phone} field are obfuscated
+ * differs between Telegram releases (13.x renames {@code UserConfig} but keeps {@code TLRPC});
+ * they are recovered at runtime by {@link TelegramSymbols} (names and reflection first, DexKit
+ * only as a fallback) rather than by hardcoded names.
  */
 public class xposedInit implements IXposedHookLoadPackage {
 
@@ -70,24 +72,22 @@ public class xposedInit implements IXposedHookLoadPackage {
     }
 
     private void hookHidePhone(XC_LoadPackage.LoadPackageParam lpparam) {
-        Class<?> userConfig = XposedHelpers.findClassIfExists(
-                "org.telegram.messenger.UserConfig", lpparam.classLoader);
-        // TLRPC$User is obfuscated; recovered from getCurrentUser()'s return type.
-        Class<?> telegramUser = symbols.userClass();
-
-        if (userConfig == null || telegramUser == null) {
-            Log.w(TAG, "hookHidePhone: UserConfig or User class not resolved");
+        // Both UserConfig and TLRPC$User can be obfuscated depending on the Telegram release,
+        // so the getter is resolved by shape rather than by name.
+        Method getCurrentUser = symbols.currentUserGetter();
+        if (getCurrentUser == null || symbols.userClass() == null) {
+            Log.w(TAG, "hookHidePhone: UserConfig getter or User class not resolved");
             return;
         }
 
         try {
-            XposedBridge.hookMethod(userConfig.getDeclaredMethod("getCurrentUser"), new XC_MethodHook() {
+            XposedBridge.hookMethod(getCurrentUser, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     Object result = param.getResult();
                     if (result == null) return;
                     try {
-                        // The field name is obfuscated to a single letter, and matching it
+                        // The field may be obfuscated to a single letter, and matching it
                         // needs a live user object, so resolve lazily on the first call.
                         if (phoneField == null) {
                             phoneField = symbols.phoneField(result);
@@ -103,9 +103,10 @@ public class xposedInit implements IXposedHookLoadPackage {
                     }
                 }
             });
-            Log.d(TAG, "hookHidePhone: hooked UserConfig.getCurrentUser");
-        } catch (NoSuchMethodException e) {
-            Log.w(TAG, "hookHidePhone: getCurrentUser not found", e);
+            Log.d(TAG, "hookHidePhone: hooked " + getCurrentUser.getDeclaringClass().getName()
+                    + "." + getCurrentUser.getName());
+        } catch (Throwable t) {
+            Log.w(TAG, "hookHidePhone: could not hook getCurrentUser", t);
         }
     }
 }

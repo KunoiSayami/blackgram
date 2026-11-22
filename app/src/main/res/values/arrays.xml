@@ -2,5 +2,6 @@
 <resources>
     <string-array name="xposedscope">
         <item>org.telegram.messenger</item>
+        <item>org.telegram.messenger.web</item>
     </string-array>
 </resources>
